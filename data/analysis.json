@@ -1,0 +1,13 @@
+{
+  "analysed_at": "2026-05-26T15:30:14.640339+00:00",
+  "stats": {
+    "total_reports": 0,
+    "severity_counts": {},
+    "top_programs": [],
+    "top_weaknesses": [],
+    "total_bounty_usd": 0,
+    "avg_bounty_usd": 0,
+    "paid_reports": 0
+  },
+  "ai_summary": "No reports collected in this run \u2014 skipping trend analysis."
+}
