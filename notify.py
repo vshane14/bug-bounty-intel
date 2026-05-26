@@ -72,7 +72,7 @@ AI TREND SUMMARY
 {summary}
 
 ---
-View full dashboard: https://yourusername.github.io/bug-bounty-intel
+View full dashboard: https://vshane14.github.io/bug-bounty-intel
 """
 
     html = f"""
@@ -98,7 +98,7 @@ View full dashboard: https://yourusername.github.io/bug-bounty-intel
 
   <hr style="border-color:#1a2640;">
   <p style="color:#5a7a9e;">
-    <a href="https://yourusername.github.io/bug-bounty-intel" style="color:#00d4ff;">
+    <a href="https://vshane14.github.io/bug-bounty-intel" style="color:#00d4ff;">
       View full dashboard →
     </a>
   </p>
