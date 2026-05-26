@@ -6,7 +6,9 @@ and writes a human-readable summary to data/analysis.json
 
 import json
 import os
+import sys
 import urllib.request
+import urllib.error
 from datetime import datetime, timezone
 from collections import Counter
 
@@ -22,13 +24,21 @@ def load_data() -> dict:
 
 
 def build_stats(items: list[dict]) -> dict:
-    """Compute quick local stats to include in the prompt."""
-    severities = Counter(i["severity"] for i in items)
-    programs   = Counter(i["program"]  for i in items).most_common(5)
-    weaknesses = Counter(i["weakness"] for i in items).most_common(5)
+    if not items:
+        return {
+            "total_reports": 0,
+            "severity_counts": {},
+            "top_programs": [],
+            "top_weaknesses": [],
+            "total_bounty_usd": 0,
+            "avg_bounty_usd": 0,
+            "paid_reports": 0,
+        }
+    severities   = Counter(i["severity"] for i in items)
+    programs     = Counter(i["program"]  for i in items).most_common(5)
+    weaknesses   = Counter(i["weakness"] for i in items).most_common(5)
     total_bounty = sum(i["bounty_usd"] for i in items)
     paid_reports = [i for i in items if i["bounty_usd"] > 0]
-
     return {
         "total_reports":    len(items),
         "severity_counts":  dict(severities),
@@ -42,10 +52,14 @@ def build_stats(items: list[dict]) -> dict:
 
 def call_claude(stats: dict, sample: list[dict]) -> str:
     if not API_KEY:
-        return "No ANTHROPIC_API_KEY set — skipping AI analysis."
+        print("  WARNING: ANTHROPIC_API_KEY secret not set — skipping AI analysis.")
+        return "API key not configured. Add ANTHROPIC_API_KEY as a GitHub Secret."
 
-    prompt = f"""You are a bug bounty intelligence analyst. 
-Analyse the following statistics from the latest HackerOne public disclosures 
+    if stats["total_reports"] == 0:
+        return "No reports collected in this run — skipping trend analysis."
+
+    prompt = f"""You are a bug bounty intelligence analyst.
+Analyse the following statistics from the latest HackerOne public disclosures
 and provide a concise 3-5 bullet-point trend summary suitable for a security professional.
 
 STATS:
@@ -78,18 +92,24 @@ Respond in plain text with bullet points only. No preamble."""
             "anthropic-version": "2023-06-01",
         },
     )
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        result = json.loads(resp.read().decode())
-        return result["content"][0]["text"]
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            result = json.loads(resp.read().decode())
+            return result["content"][0]["text"]
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()
+        print(f"  Claude API error {e.code}: {body}")
+        # Don't crash the whole pipeline — return a fallback message
+        return f"AI analysis unavailable (API error {e.code}). Check your ANTHROPIC_API_KEY secret."
 
 
 def run():
     print(f"[{datetime.now(timezone.utc).isoformat()}] Starting analysis…")
     data  = load_data()
-    items = data["items"]
+    items = data.get("items", [])
     stats = build_stats(items)
 
-    print(f"  Running Claude trend analysis on {len(items)} reports…")
+    print(f"  Analysing {len(items)} reports…")
     summary = call_claude(stats, items)
 
     output = {
